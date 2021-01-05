@@ -30,7 +30,6 @@ def run_continous_availability_check_and_book_date(personal_data=None):
             if check_availability(wd, responses):
                 beepy.beep(sound='coin')
                 msg = f"**NOW AVAILABLE!** ({responses[-1]})"
-                # print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- {msg}")
                 if SEND_MSG_RIOT:
                     send_message_riot(msg, token=token, room=MATRIX_ROOM_ID)
                 try:

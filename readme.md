@@ -1,6 +1,8 @@
 # Automatic Vaccination Availability Check for Saarland, Germany
 
-<img align="center" src="./imgs/vaccination_homepage.jpg" height="400" />
+<p align="center">
+    <img src="./imgs/vaccination_homepage.jpg" height="400" />
+</p>
 
 Vaccinations appointments in [Saarland](https://en.wikipedia.org/wiki/Saarland), Germany can be scheduled [online](https://www.impfen-saarland.de/).
 However, since there is no information on when new appointments will be open to the public, I built this small tool to check the current availability.
@@ -20,7 +22,7 @@ Also, download the [chrome driver](https://chromedriver.chromium.org/downloads) 
 ## Usage
 ### General
 Adjust the configuration:
-- `PERSONAL_DATA`: `None` if no booking of appointment if wanted, otherwise fill out in [personal_data.py](../check_vaccination_availability%20-%20Copy%20(2)/personal_data.py).
+- `PERSONAL_DATA`: `None` if no booking of appointment if wanted, otherwise fill out in [personal_data.py](personal_data.py).
 - `SEND_MSG_RIOT `: `boolean` whether or not messages should be send. Note that a [token](https://webapps.stackexchange.com/a/138497) is needed and `MATRIX_ROOM_ID` must be changed.
 - `SLEEP_TIME_BETWEEN_QUERIES_*`: configure the frequency in which the availability is checked.
 

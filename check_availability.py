@@ -1,20 +1,28 @@
+import os
 import datetime
 import random
 import beepy
 import time
 from selenium import webdriver
+from matrix_client.api import MatrixHttpApi
+from personal_data import data as PERSONAL_DATA
 
-DRIVER_PATH = 'C:\dev\chromedriver\chromedriver_87.exe'  # download chrome drivers and adjust path
+DRIVER_PATH = 'INSERT\\path\\to\\chromediver'  # download chrome drivers and adjust path
 SLEEP_TIME_BETWEEN_QUERIES_MIN = 0.8  # minutes
 SLEEP_TIME_BETWEEN_QUERIES_MAX = 1.5  # minutes
 DESIRED_VACCINATION_CENTERS = [0, 1, 2]  # add or remove wanted locations (0: SLS, 1: SB, 2: NK)
+SEND_MSG_RIOT = False
+MATRIX_ROOM_ID = "!INSERT_ROOM_ID_HERE:matrix.org"  # find room id in Room Settings > Advanced
 SLEEP_TIME_BETWEEN_CLICKS_MIN = 0.5  # seconds (Note: Increase when getting many errors)
 SLEEP_TIME_BETWEEN_CLICKS_MAX = 1  # seconds
 ZENTREN = ['SLS', 'SB', 'NK']
 
 
 def run_continous_availability_check_and_book_date(personal_data=None):
+    if SEND_MSG_RIOT:
+        token = os.getenv('RIOT_TOKEN')  # riot token can be specified as an environment variable
     responses = []
+    booked = False
     with webdriver.Chrome(executable_path=DRIVER_PATH) as wd:
         while True:
             sleep_time = 60 * (SLEEP_TIME_BETWEEN_QUERIES_MIN + random.random() * (
@@ -22,6 +30,17 @@ def run_continous_availability_check_and_book_date(personal_data=None):
             if check_availability(wd, responses):
                 beepy.beep(sound='coin')
                 msg = f"**NOW AVAILABLE!** ({responses[-1]})"
+                # print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- {msg}")
+                if SEND_MSG_RIOT:
+                    send_message_riot(msg, token=token, room=MATRIX_ROOM_ID)
+                try:
+                    select_appointment(wd)
+                    if personal_data is not None and not booked:
+                        fill_out_form(wd, personal_data)
+                        booked = True
+                        msg += f"\n Succesfully booked appointment for {personal_data['firstname']}"
+                except Exception as e:
+                    msg += f"\n Failed booking appointment: {e}"
             else:
                 msg = f"{responses[-1]}, wait {round(sleep_time)} secs"
             print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- {msg}")
@@ -99,6 +118,47 @@ def click_submit(wd):
             return
 
 
+def select_appointment(wd, save_page=True):
+    if save_page:  # save page to know where changes occurred
+        content = wd.page_source
+        with open(f"appointments_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.html", "w") as f:
+            f.write(content)
+
+    time.sleep(1.5)
+    dates = retry(wd.find_elements_by_class_name, ['hqpCsy'])
+    if len(dates) > 1:
+        dates[1].click()
+    else:
+        dates[0].click()
+    click_submit(wd)
+
+
+def fill_out_form(wd, data):
+    time.sleep(2.5)  # wait for page load
+    # Enter all personal data
+    for element in ['firstName', 'lastName', 'street', 'zip', 'city', 'email', 'mobile']:
+        el = wd.find_element_by_name(element)
+        el.send_keys(data[element.lower()])
+    gender = wd.find_element_by_name('gender')
+    for option in gender.find_elements_by_tag_name('option'):
+        if option.text.lower() == data['gender']:
+            option.click()
+            break
+    bday = wd.find_elements_by_css_selector('input')[2]
+    bday.clear()
+    bday.send_keys(data['bday'])
+
+    # Confirm everything
+    for element in ['confirmEntitledForVaccination', 'acceptPrivacyPolicy', 'allowDataTransferToInstitution',
+                    'allowNotificationViaEmailOrSMS']:
+        confirm = wd.find_element_by_name(element)
+        confirm.click()
+
+    # Submit form
+    click_submit(wd)
+    time.sleep(5)
+
+
 ''' 
 Utilities 
 '''
@@ -128,5 +188,10 @@ def retry(fct, args, max_attempts=5):
     return res
 
 
+def send_message_riot(message, token, room, server='https://matrix.org'):
+    matrix = MatrixHttpApi(server, token=token)
+    response = matrix.send_message(room, message)
+
+
 if __name__ == '__main__':
-    run_continous_availability_check_and_book_date()
+    run_continous_availability_check_and_book_date(PERSONAL_DATA)

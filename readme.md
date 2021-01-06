@@ -10,7 +10,7 @@ In addition to that, also direct booking of an appointment is possible.
 
 This script sends an automatic message with the current status to a group in [Element](https://element.io/blog/welcome-to-element/) I created and triggers a computer sound when an appointment is available.
 
-**Note** that the website is under active development (e.g. there was no `back` button during the time of development). Dialogues might change over time and thus, compatibility cannot be guarantied.
+**Note** that the website is under active development (e.g. there was no `back` button during the time of development). Dialogues might change over time and thus, compatibility cannot be guaranteed.
 
 ## Installation
 Install necessary packages for Python3 with
@@ -37,6 +37,6 @@ To find the room ID go the room `Settings` and select `Advanced`.
 
 
 ## Disclaimer
-This was a small and quick project, so don't except the code to be too clean ;)
+This was a small and quick project, so don't expect the code to be too clean ;)
 
 I hope it helps someone and feedback is always welcome!

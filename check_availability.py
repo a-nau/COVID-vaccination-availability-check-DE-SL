@@ -3,22 +3,21 @@ import datetime
 import random
 import beepy
 import time
+import json
 from selenium import webdriver
 from matrix_client.api import MatrixHttpApi
-from personal_data import data as PERSONAL_DATA
 
-DRIVER_PATH = 'INSERT\\path\\to\\chromediver'  # download chrome drivers and adjust path
-SLEEP_TIME_BETWEEN_QUERIES_MIN = 0.8  # minutes
-SLEEP_TIME_BETWEEN_QUERIES_MAX = 1.5  # minutes
-DESIRED_VACCINATION_CENTERS = [0, 1, 2]  # add or remove wanted locations (0: SLS, 1: SB, 2: NK)
-SEND_MSG_RIOT = False
-MATRIX_ROOM_ID = "!INSERT_ROOM_ID_HERE:matrix.org"  # find room id in Room Settings > Advanced
-SLEEP_TIME_BETWEEN_CLICKS_MIN = 0.5  # seconds (Note: Increase when getting many errors)
-SLEEP_TIME_BETWEEN_CLICKS_MAX = 1  # seconds
-ZENTREN = ['SLS', 'SB', 'NK']
+from config import DRIVER_PATH, SLEEP_TIME_BETWEEN_QUERIES_MIN, SLEEP_TIME_BETWEEN_QUERIES_MAX, \
+    DESIRED_VACCINATION_CENTERS, SEND_MSG_RIOT, MATRIX_ROOM_ID, SLEEP_TIME_BETWEEN_CLICKS_MIN, \
+    SLEEP_TIME_BETWEEN_CLICKS_MAX, ZENTREN
 
 
-def run_continuous_availability_check_and_book_date(personal_data=None):
+def run_continuous_availability_check_and_book_date(personal_data_file_name=None):
+    if personal_data_file_name is not None:
+        with open('./personal_data.json') as f:
+            personal_data = json.load(f)
+    else:
+        personal_data = None
     if SEND_MSG_RIOT:
         token = os.getenv('RIOT_TOKEN')  # riot token can be specified as an environment variable
     responses = []
@@ -57,7 +56,6 @@ def check_availability(wd, responses):
         return False
 
     try:  # check if appointments are available
-        time.sleep(1.5)  # finish loading site
         answer = get_text_of_first_class_instance(wd, 'heading-5')
         if answer is None:
             answer = f"Could not find result text!"
@@ -108,14 +106,11 @@ def click_through_website(wd, vaccination_center):
 
 
 def click_submit(wd):
-    for submit in [
-        retry(wd.find_elements_by_class_name, ['fPsgMr']),
-        # retry(wd.find_elements_by_class_name, ['form-submit-button']),
-    ]:
-        if len(submit) > 0:
-            submit[0].click()
-            sleep()
-            return
+    submit = retry(wd.find_elements_by_class_name, ['fPsgMr'])
+    if len(submit) > 0:
+        submit[0].click()
+        sleep()
+        return
 
 
 def select_appointment(wd, save_page=True):
@@ -125,31 +120,34 @@ def select_appointment(wd, save_page=True):
     for element in ['iotktz', 'hqpCsy']:
         dates = retry(wd.find_elements_by_class_name, [element])
         if len(dates) > 1:
-            dates[1].click()
+            dates[-1].click()  # choose last, because first is often taken
         else:
             dates[0].click()
         click_submit(wd)
 
         headline = get_text_of_first_class_instance(wd, 'heading-5')
-        if headline == 'Patient data':
+        if headline is None:
+            pass
+        elif headline.lower() == 'patient data':
             return True
-        elif headline == 'Select Vaccination Appointment':
+        elif headline.lower() == 'select vaccination appointments':
             # check if no available anymore
             error = get_text_of_first_class_instance(wd, 'error')
-            if error[:13] == 'Unfortunately':
-                print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- {error}")
-                return False
-    time.sleep(1200)  # sleep only if couldn't reach patient data site
+            if error is not None and error[:13] == 'Unfortunately':
+                print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- Try again: {error}")
+                select_appointment(wd, save_page=True)  # try to book new appointment
+    # time.sleep(1200)  # sleep only if couldn't reach patient data site
+    return False
 
 
-def fill_out_form(wd, data, save_page=True):
+def fill_out_form(wd, data, save_page=False):
     time.sleep(2.5)  # wait for page load
 
     if save_page:  # save page to know where changes occurred
         save_html_page(wd, 'enter_data')
 
     headline = get_text_of_first_class_instance(wd, 'heading-5')
-    if headline != 'Patient Data':
+    if headline is not None and headline.lower() != 'patient data':
         time.sleep(1200)  # sleep to manually interrupt
     try:
         # Enter all personal data
@@ -161,9 +159,7 @@ def fill_out_form(wd, data, save_page=True):
             if option.text.lower() == data['gender']:
                 option.click()
                 break
-        bday = wd.find_elements_by_css_selector('input')[2]
-        bday.clear()
-        bday.send_keys(data['bday'])
+        wd.execute_script(f"document.getElementsByTagName('input')[2].setAttribute('value', '{data['bday']}')")
 
         # Confirm everything
         for element in ['confirmEntitledForVaccination', 'acceptPrivacyPolicy', 'allowDataTransferToInstitution',
@@ -216,13 +212,15 @@ def send_message_riot(message, token, room, server='https://matrix.org'):
 
 
 def save_html_page(wd, identifier):
-    if not os.path.exists('/misc'):
-        os.mkdir('/misc')
+    if not os.path.exists('./misc'):
+        os.mkdir('./misc')
     content = wd.page_source
-    with open(os.path.join('misc', f"{identifier}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.html"), "w") as f:
+    with open(os.path.join('./misc', f"{identifier}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.html"),
+              "w") as f:
         f.write(content)
-    wd.get_screenshot_as_file(os.path.join("misc", f"{identifier}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"))
+    wd.get_screenshot_as_file(
+        os.path.join("./misc", f"{identifier}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"))
 
 
 if __name__ == '__main__':
-    run_continuous_availability_check_and_book_date(PERSONAL_DATA)
+    run_continuous_availability_check_and_book_date('./personal_data.json')

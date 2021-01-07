@@ -1,0 +1,9 @@
+DRIVER_PATH = 'INSERT\\path\\to\\chromediver'  # download chrome drivers and adjust path
+SLEEP_TIME_BETWEEN_QUERIES_MIN = 0.8  # minutes
+SLEEP_TIME_BETWEEN_QUERIES_MAX = 1.5  # minutes
+DESIRED_VACCINATION_CENTERS = [0, 1, 2]  # add or remove wanted locations (0: SLS, 1: SB, 2: NK)
+SEND_MSG_RIOT = False
+MATRIX_ROOM_ID = "!INSERT_ROOM_ID_HERE:matrix.org"  # find room id in Room Settings > Advanced
+SLEEP_TIME_BETWEEN_CLICKS_MIN = 0.5  # seconds (Note: Increase when getting many errors)
+SLEEP_TIME_BETWEEN_CLICKS_MAX = 1  # seconds
+ZENTREN = ['SLS', 'SB', 'NK']

@@ -27,14 +27,14 @@ def run_continuous_availability_check_and_book_date(personal_data_file_name=None
             sleep_time = 60 * (SLEEP_TIME_BETWEEN_QUERIES_MIN + random.random() * (
                     SLEEP_TIME_BETWEEN_QUERIES_MAX - SLEEP_TIME_BETWEEN_QUERIES_MIN))
             if check_availability(wd, responses):
-                beepy.beep(sound='coin')
                 msg = f"**NOW AVAILABLE!** ({responses[-1]})"
                 print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- {msg}")
-                if SEND_MSG_RIOT:
-                    send_message_riot(msg, token=token, room=MATRIX_ROOM_ID)
                 try:
                     success = select_appointment(wd)
                     if success and personal_data is not None and not booked:
+                        beepy.beep(sound='coin')
+                        if SEND_MSG_RIOT:
+                            send_message_riot(msg, token=token, room=MATRIX_ROOM_ID)
                         fill_out_form(wd, personal_data)
                         booked = True
                         msg += f"\n Succesfully booked appointment for {personal_data['firstname']}"
@@ -113,7 +113,7 @@ def click_submit(wd):
         return
 
 
-def select_appointment(wd, save_page=True):
+def select_appointment(wd, save_page=False):
     if save_page:  # save page to know where changes occurred
         save_html_page(wd, 'appointments')
 
@@ -136,7 +136,6 @@ def select_appointment(wd, save_page=True):
             if error is not None and error[:13] == 'Unfortunately':
                 print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- Try again: {error}")
                 select_appointment(wd, save_page=True)  # try to book new appointment
-    # time.sleep(1200)  # sleep only if couldn't reach patient data site
     return False
 
 
@@ -159,7 +158,10 @@ def fill_out_form(wd, data, save_page=False):
             if option.text.lower() == data['gender']:
                 option.click()
                 break
-        wd.execute_script(f"document.getElementsByTagName('input')[2].setAttribute('value', '{data['bday']}')")
+        # wd.execute_script(f"document.getElementsByTagName('input')[2].value=\"{data['bday']}\"")
+        bday = wd.find_elements_by_css_selector('input')[2]
+        bday.click()
+        bday.send_keys(data['bday'])
 
         # Confirm everything
         for element in ['confirmEntitledForVaccination', 'acceptPrivacyPolicy', 'allowDataTransferToInstitution',
@@ -200,8 +202,6 @@ def retry(fct, args, max_attempts=5):
         except:
             pass
         time.sleep(1.5)
-        print(f"[{datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}] -- "
-              f"sleep & retry ({retries + 1}/{max_attempts}) (args: {args})")
         retries += 1
     return res
 

@@ -12,6 +12,8 @@ This script sends an automatic message with the current status to a group in [El
 
 **Note** that the website is under active development (e.g. there was no `back` button during the time of development). Dialogues might change over time and thus, compatibility cannot be guaranteed.
 
+**UPDATE**: The system for booking vaccination appointments has [changed](https://www.rtl.de/cms/impftermine-leichter-buchen-saarland-fuehrt-impfliste-ein-4681030.html), thus booking appointments with this tool is no longer possible as of 11.01.2020.
+
 ## Installation
 Install necessary packages for Python3 with
 ```shell script
@@ -21,10 +23,16 @@ Also, download the [chrome driver](https://chromedriver.chromium.org/downloads) 
 
 ## Usage
 ### General
-Adjust the configuration:
-- `PERSONAL_DATA`: `None` if no booking of appointment if wanted, otherwise fill out in [personal_data.py](personal_data.py).
+Adjust the configuration in [config.py](config.py):
+- `DRIVER_PATH`: adjust your chrome driver path.
+- `DESIRED_VACCINATION_CENTERS`: Select the vaccination centers you want to book at (0: SLS, 1: SB, 2: NK).
 - `SEND_MSG_RIOT `: `boolean` whether or not messages should be send. Note that a [token](https://webapps.stackexchange.com/a/138497) is needed and `MATRIX_ROOM_ID` must be changed.
-- `SLEEP_TIME_BETWEEN_QUERIES_*`: configure the frequency in which the availability is checked.
+- `MATRIX_ROOM_ID `: set matrix room id, if you want to send messages via Riot/Element.
+- `SLEEP_TIME_BETWEEN_QUERIES_*`: configure the frequency with which the availability is checked.
+- `SLEEP_TIME_BETWEEN_CLICKS_*`: configure the frequency with which buttons are clicked.
+
+Add personal data for booking in [personal_data.json](personal_data.json). Gender can be `female`, `male`, `diverse` or `unkown`.
+If no booking should be performed, simply do not pass the path to the main method of [check_availability.py](check_availability.py).
 
 Run the function
 ```shell script

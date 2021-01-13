@@ -2,7 +2,7 @@
     "gender": "female",
     "firstname": "..",
     "lastname": "..",
-    "bday": "DD.MM.YYYY",
+    "bday": "DDMMYYYY",
     "street": "..",
     "zip": "..",
     "city": "..",

@@ -89,19 +89,14 @@ def get_text_of_first_class_instance(wd, class_name):
 
 
 def click_through_website(wd, vaccination_center):
-    def click_above_80(wd):
-        btn_above80 = retry(wd.find_elements_by_class_name, ['fEMWDd'])
-        btn_above80[0].click()
+    def click_element_in_list(wd, i):
+        list_elements = retry(wd.find_elements_by_class_name, ['fEMWDd'])
+        list_elements[i].click()
         sleep()
 
-    def click_vaccination_center(wd, vaccination_center):
-        btns_impfzentrum = retry(wd.find_elements_by_class_name, ['fEMWDd'])
-        btns_impfzentrum[vaccination_center].click()
-        sleep()
-
-    click_above_80(wd)
+    click_element_in_list(wd, 0)
     click_submit(wd)
-    click_vaccination_center(wd, vaccination_center)
+    click_element_in_list(wd, vaccination_center)
     click_submit(wd)
 
 
